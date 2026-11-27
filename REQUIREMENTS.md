@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Document | Wallpaper Generator Requirements |
-| Version | v1.0 |
-| Status | **Draft** (pending answers to [Open Questions](#12-open-questions)) |
+| Version | v1.1 |
+| Status | **Working draft**: core product decisions made (§1.3); remaining open questions in §12 |
 | Last updated | 2026-11-27 |
 | Purpose | Single source of truth for what the generator must do and which look-and-feel controls it exposes |
 
@@ -29,16 +29,27 @@ Every wallpaper is defined by a **recipe**: texture type, parameters, palette an
 - Photo editing or filters applied to user photos.
 - Generative-AI image models. v1 is **procedural** (math-based noise and patterns): deterministic, offline, and with no licensing ambiguity about the output.
 - Social feed, accounts or a marketplace.
+- Native app-store apps (v1 is web/PWA; native wrappers can come later).
+
+### 1.3 Product Decisions (v1.1)
+
+| # | Decision | Implication |
+|---|---|---|
+| D1 | **Platform: web / PWA first** | Runs in mobile Safari and Chrome, installable to the home screen, works offline. No direct "set as wallpaper" (browsers can't do this); users save the image, then set it in Photos or Gallery. |
+| D2 | **Business model: a tool for people to make their own wallpapers** | The core value is the creation experience and output quality. Creator-scale features (batch export) stay optional. How it earns money is still open (§12). |
+| D3 | **Licensing: users own their exports; built-in presets are for personal use only** | Needs clear terms, and a way to tell when an export is "preset-derived" (§3.5). |
+| D4 | **Aesthetic: one curated signature look, not a broad toolkit** | Fewer, better textures. Palettes, presets and Randomize are kept within the signature look (§4.1). |
+| D5 | **Reference device: iPhone 16** (1179 × 2556, Safari) | All performance targets are measured on it (§8). |
 
 ---
 
 ## 2. Users and Use Cases
 
-| Persona | Need | Key use case |
-|---|---|---|
-| Casual user | A fresh, attractive wallpaper in seconds | Tap **Randomize** until something looks right, then export |
-| Aesthetic tinkerer | Fine control to match their phone case, outfit or theme | Tweak palette, grain and lighting; save as a preset |
-| Creator / artist | Original textures to sell or share as packs | Batch-export a series from one recipe with varied seeds |
+| Persona | Priority | Need | Key use case |
+|---|---|---|---|
+| Aesthetic tinkerer | **Primary** | A wallpaper that is unmistakably theirs, within a beautiful curated look | Start from a preset, adjust palette and grain, save their own preset |
+| Casual user | **Primary** | A fresh, attractive wallpaper in seconds | Tap **Randomize** (kept on-brand) until something looks right, then save |
+| Creator / artist | Secondary | Original textures they own outright | Export a series from one edited recipe with varied seeds |
 
 ---
 
@@ -51,7 +62,7 @@ Priority: **M** = must (MVP), **S** = should, **C** = could.
 | ID | Requirement | Priority |
 |---|---|---|
 | FR-1 | Generate an image from a texture type, parameter set, palette and seed. | M |
-| FR-2 | Identical recipe + seed + resolution produces a pixel-identical image on the same platform. | M |
+| FR-2 | Identical recipe + seed + resolution produces a pixel-identical image on the same device and browser, and a visually identical one across devices. GPUs differ slightly in floating-point precision, so pixel-identical results across all hardware can't be guaranteed on the web. | M |
 | FR-3 | Output resolution is independent of the recipe: the same recipe renders at any target size without changing its composition (resolution-independent parameters). | M |
 | FR-4 | **Randomize** generates a new seed; **Randomize all** also randomizes parameters within tasteful bounds. | M |
 | FR-5 | Lock individual parameters so Randomize leaves them unchanged. | S |
@@ -80,19 +91,39 @@ Priority: **M** = must (MVP), **S** = should, **C** = could.
 
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-16 | Export at the device's native resolution by default (see §7). | M |
-| FR-17 | Formats: PNG (lossless) and JPEG (quality 85–100). HEIC/WebP optional. | M |
-| FR-18 | Save to the photo library / gallery; system share sheet. | M |
-| FR-19 | On Android, set the wallpaper directly (home, lock or both). iOS does not allow this; guide the user through Photos instead. | S |
+| FR-16 | Export at the device's native resolution by default: detected as `screen.width/height × devicePixelRatio`, with a device picker to confirm or override (see §7). | M |
+| FR-17 | Formats: PNG (lossless) and JPEG (quality 85–100). WebP optional. HEIC is not available from browser canvas. | M |
+| FR-18 | **Save via the system share sheet** (Web Share API with files → "Save Image" puts it in Photos on iOS). Fall back to a file download where sharing isn't supported. | M |
+| FR-19 | ~~Set the wallpaper directly~~ Not possible from the web (D1). Replaced by a short **"How to set your wallpaper"** guide for iOS and Android, shown after the first save. | M |
 | FR-20 | Export a matched pair: a lock-screen version and a home-screen version (for example, dimmed or blurred). | S |
 | FR-21 | Batch export N seeds of one recipe as a ZIP (creator use case). | C |
 | FR-22 | Export at custom dimensions or presets for tablets, desktops and watches. | C |
+
+### 3.5 Web App and Licensing
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-23 | Installable PWA: web manifest, icons, splash screen, and opens full-screen from the home screen. | M |
+| FR-24 | Works fully offline after the first visit (a service worker caches the app shell and shaders). | M |
+| FR-25 | User presets are stored on-device (IndexedDB). Show a notice that clearing browser data deletes them, and offer **Export all presets** (JSON) as a backup. | M |
+| FR-26 | Each recipe records its **origin**: `user` or `preset:<id>` with a `modified` flag. This origin goes into the export metadata (FR-15). | M |
+| FR-27 | Exports from an **unmodified built-in preset** are marked *Personal use only*. Any edit makes the export **user-owned** (D3). The rule is shown at export time. | M |
+| FR-28 | Terms page in plain language: users own what they make; built-in presets and the app's look are licensed for personal use; no claim on user exports. | M |
+
+> **Recommended threshold for "modified" (FR-27):** any change to palette colors, texture type, or a texture or global parameter beyond seed-only randomizing. A new seed on its own does **not** count as an edit, otherwise one tap would bypass the preset license. See §12, question 3.
 
 ---
 
 ## 4. Texture Catalog
 
-Each texture type is a generator with its own parameters (§5.3) on top of the shared controls. The MVP ships the first six.
+Each texture type is a generator with its own parameters (§5.3) on top of the shared controls. The MVP ships the first six, but D4 (curated look) means the final MVP list should be **cut to the 3–6 textures that best express the signature look** once it is defined (§4.1).
+
+### 4.1 Curated Look Guardrails (D4)
+
+- **Signature definition:** a one-page *Look Guide* with 3–5 adjectives, 4–6 palette families, a grain and finish character, and reference images. It is the test every texture and preset must pass. *(To be written; §12 question 1.)*
+- **Bounded Randomize:** Randomize picks only from the curated palettes and from "on-brand" parameter ranges that are narrower than the full ranges in §5. The full ranges stay available in Advanced mode.
+- **Presets as the front door:** the app opens on a gallery of signature presets, not a blank editor.
+- **Quality bar:** a texture ships only if three random seeds out of three look good enough to post. If not, it's cut or narrowed.
 
 | # | Texture | Technique | Look | MVP |
 |---|---|---|---|---|
@@ -130,9 +161,9 @@ These are the controls that shape look and feel. Ranges are normalized where pos
 | `palette.saturation` | float | 0–2 | 1 | Global multiplier |
 | `palette.lightnessRange` | [float, float] | 0–1 | [0.15, 0.85] | Clamps the darkest and lightest output |
 | `palette.extractFromImage` | image | user photo | — | Pulls 3–6 dominant colors (k-means); the photo is not stored |
-| `palette.matchSystemTheme` | bool | — | false | Android 12+ Material You / iOS accent harmony |
+| ~~`palette.matchSystemTheme`~~ | — | — | — | Dropped: browsers can't read the system accent color (D1) |
 
-**Built-in palette families:** Earthy, Pastel, Jewel, Neon, Monochrome Ink, Desert, Ocean, Forest, Sunset, Paper & Ink, Midnight, Seasonal (4).
+**Built-in palette families:** to be reduced to **4–6 curated families** defined in the Look Guide (§4.1). Candidate list: Earthy, Pastel, Jewel, Neon, Monochrome Ink, Desert, Ocean, Forest, Sunset, Paper & Ink, Midnight, Seasonal (4).
 
 ### 5.2 Global Texture Controls (all types)
 
@@ -251,7 +282,7 @@ The generator should help the output work as a wallpaper, not just as art.
 
 ### 7.1 Resolution Presets
 
-Default to the **detected device's native pixel resolution**. The presets below are reference values; **verify them against current manufacturer specs before release**, because new models ship every year.
+Default to the **detected device's native pixel resolution** (FR-16). **The reference and test target is the iPhone 16 at 1179 × 2556** (D5). The presets below are reference values; **verify them against current manufacturer specs before release**, because new models ship every year.
 
 | Device class | Example resolution (px) | Aspect |
 |---|---|---|
@@ -276,7 +307,7 @@ Default to the **detected device's native pixel resolution**. The presets below 
 
 | Property | Requirement |
 |---|---|
-| Color profile | sRGB embedded by default; Display P3 optional on supported devices |
+| Color profile | sRGB by default; Display P3 optional where the browser's canvas supports it (`colorSpace: "display-p3"`, Safari) |
 | Bit depth | 8-bit per channel (dithered); 16-bit PNG optional |
 | PNG | Lossless, compressed; typically 3–12 MB at QHD+ for grainy textures |
 | JPEG | Quality 92 default; 4:4:4 chroma (no subsampling) to keep fine grain crisp |
@@ -289,11 +320,13 @@ Default to the **detected device's native pixel resolution**. The presets below 
 
 | ID | Category | Requirement |
 |---|---|---|
-| NFR-1 | Performance | Preview (at reduced resolution) updates in ≤ 100 ms after a parameter change on a mid-range phone (about 3 years old). |
-| NFR-2 | Performance | Full-resolution render ≤ 2 s for MVP textures on a mid-range phone; show progress if longer. |
-| NFR-3 | Performance | Rendering runs on the GPU (shaders) where available, with a CPU fallback. |
-| NFR-4 | Memory | Peak memory during a QHD+ export stays under 300 MB. |
-| NFR-5 | Offline | All generation works fully offline. |
+| NFR-1 | Performance | Preview (at reduced resolution) updates in ≤ 100 ms after a parameter change on the **iPhone 16 in Safari** (D5). |
+| NFR-2 | Performance | Full-resolution render (1179 × 2556) ≤ 2 s for MVP textures on the iPhone 16 in Safari; show progress if longer. |
+| NFR-3 | Performance | Rendering uses **WebGL2** fragment shaders, with a slower Canvas 2D fallback. |
+| NFR-4 | Memory | Peak memory during export stays under 300 MB, and the canvas stays within iOS Safari's canvas size limits. Very large custom exports (FR-22) render in tiles. |
+| NFR-5 | Offline | All generation works fully offline once installed or cached (FR-24). |
+| NFR-11 | Compatibility | Supports the latest two major versions of iOS Safari and Android Chrome. Desktop browsers are supported for editing but not optimized. |
+| NFR-12 | Load | The first load on 4G is interactive in ≤ 3 s. The app shell is under 500 KB gzipped. |
 | NFR-6 | Determinism | Seeded PRNG and noise implementation are versioned (`engineVersion` in the recipe) so old recipes still render identically after updates. |
 | NFR-7 | Privacy | No account required. Photos used for palette extraction are processed on-device and never stored or uploaded. No analytics without opt-in. |
 | NFR-8 | Accessibility | Every control has a screen-reader label; supports Dynamic Type / font scaling; sliders also accept numeric entry; respects Reduce Motion. |
@@ -308,6 +341,7 @@ Default to the **detected device's native pixel resolution**. The presets below 
 {
   "engineVersion": "1.0.0",
   "name": "Dusk Marble",
+  "origin": { "source": "preset", "presetId": "dusk-marble", "modified": true },
   "seed": 2837461,
   "texture": {
     "type": "fluid-marble",
@@ -337,40 +371,56 @@ Resolution and file format are **not** part of the recipe. They are export setti
 
 ---
 
-## 10. Technical Approach (recommended, not binding)
+## 10. Technical Approach
 
-| Decision | Recommendation | Alternative | Tradeoff |
+Platform decided: **web / PWA** (D1). Everything else below is a recommendation, not binding.
+
+| Area | Recommendation | Alternative | Tradeoff |
 |---|---|---|---|
-| Platform | **Flutter** (one codebase for iOS and Android, GPU fragment shaders) | Native Swift (Metal) + Kotlin | Native gives top performance and system integration, at double the build cost |
-| | | PWA / web (WebGL) | Fastest to ship and share; but no direct "set wallpaper" and weaker photo-library integration |
-| Rendering | GPU fragment shaders for noise fields, CPU only for scatter textures (T5) | All on CPU | Simpler, but too slow for live preview at high detail |
-| Noise | Simplex / OpenSimplex2 + Worley, implemented in-house with fixed constants | Third-party noise library | In-house guarantees determinism across versions (NFR-6) |
-| PRNG | PCG32 or xoshiro128** seeded from `seed` | Platform `Random` | Platform RNGs are not guaranteed stable across OS versions |
+| Language / build | **TypeScript + Vite** | Plain JS | Types keep the recipe schema and parameters consistent as they grow |
+| UI | **Svelte** or **Preact** (small bundle, NFR-12) | React | React is fine but heavier; the UI here is mostly sliders and a canvas |
+| Rendering | **WebGL2 fragment shaders** for noise fields; Canvas 2D or a worker for scatter textures (T5) | WebGPU | WebGPU is faster and more modern, but support on the iPhone 16 needs a recent iOS. Revisit for v2. |
+| Noise | Simplex / OpenSimplex2 + Worley, written in-house in GLSL using **integer-hash** randomness | Third-party library | In-house code with integer hashing gives the best determinism across GPUs (FR-2, NFR-6) |
+| PRNG (CPU side) | PCG32 or xoshiro128** seeded from `seed` | `Math.random()` | `Math.random()` can't be seeded |
+| Export | `canvas.toBlob()` → insert a PNG `tEXt` chunk with the recipe → Web Share API | Server-side rendering | Client-side keeps it free to run, private and offline |
+| Storage | IndexedDB for presets (FR-25) | localStorage | localStorage is small and synchronous |
+| Hosting | Static host (Netlify, Vercel, Cloudflare Pages); no backend in v1 | — | Near-zero running cost |
+| Path to app stores | Wrap later with Capacitor if native features (set wallpaper on Android) justify it | — | Keeps that option open without building it now |
 
 ---
 
 ## 11. MVP Scope (90-day horizon)
 
-**In:** T1–T6 textures, §5.1 palette (without image extraction), §5.2 global controls, §5.3 MVP params, §5.5 grain/vignette/dither, calm clock zone, phone-mockup preview, 12 presets, save/load presets, PNG/JPEG export at native resolution, Android set-wallpaper.
+**In:** Look Guide (§4.1); **3–6 curated textures** chosen from T1–T6; curated palette families; §5.2 global controls; §5.3 params for the chosen textures; §5.5 grain/vignette/dither; calm clock zone; phone-mockup preview; 12 signature presets; save/load presets plus JSON backup; PNG/JPEG export at native resolution through the share sheet; "how to set your wallpaper" guide; installable offline PWA; preset licensing marks and terms page (FR-26 to FR-28).
 
-**Out (v1.1+):** layering, lighting/relief, light/dark pairs, palette from photo, share codes, batch export, T7–T14, animated wallpapers.
+**Out (later):** layering, lighting/relief, light/dark pairs, palette from photo, share codes, batch export, T7–T14, animated wallpapers, native app wrapper.
+
+**Suggested phasing:**
+
+| Weeks | Milestone |
+|---|---|
+| 1–2 | Look Guide written; WebGL prototype of 2 textures with live sliders on the iPhone 16 |
+| 3–6 | Remaining MVP textures, palette system, recipe model, presets, export |
+| 7–9 | PWA install and offline, licensing flow, readability check, 12 signature presets |
+| 10–12 | Polish, test with 5–10 real users, launch |
 
 **Success criteria:**
-- A new user exports a wallpaper in under 60 seconds.
-- Preview meets NFR-1 on the reference mid-range device.
-- 100 % of built-in presets pass the readability check (§6).
+- A new user saves a wallpaper to Photos in under 60 seconds.
+- Preview meets NFR-1 on the iPhone 16.
+- 100 % of built-in presets pass the readability check (§6) and the Look Guide test (§4.1).
 
 ---
 
 ## 12. Open Questions
 
-These change scope or architecture and need decisions before v1.0 is final.
+**Resolved in v1.1** → see §1.3 (platform, business model, licensing, aesthetic, reference device).
 
-1. **Platform:** native iOS + Android app, Flutter, or web/PWA first?
-2. **Business model:** free, one-time purchase, freemium (premium textures/packs), or a tool for producing *your own* wallpaper packs to sell? This decides whether batch export and licensing (§3.4 FR-21) are MVP.
-3. **Output ownership and licensing:** who owns generated images, and may users sell them? Recommendation: users own their exports; built-in presets are licensed for personal use only.
-4. **Brand / aesthetic direction:** a broad toolkit, or a curated signature look? A curated look is easier to market and differentiate.
-5. **Reference device** for the performance targets (NFR-1, NFR-2).
+**Still open:**
+
+1. **What is the signature look?** 3–5 adjectives, palette families and reference images for the Look Guide (§4.1). This blocks choosing the textures and presets. *Most important.*
+2. **How does the tool earn money (or does it)?** Options: free (a portfolio and brand piece that drives traffic to your art), a one-time unlock of premium textures, or pay-what-you-want. Recommendation: **free core plus a paid "signature collection" unlock**, decided before week 7 so licensing and the paywall can be built together.
+3. **Confirm the "modified" threshold** for preset licensing (§3.5): does a seed-only change keep an export personal-use-only? Recommendation: yes.
+4. **Is "users own their exports" on top of a preset someone else designed acceptable to you as the presets' creator?** The modified rule protects the presets themselves, but heavily edited versions of your signature look become user-owned. Confirm you're comfortable with that.
 
 ---
 
@@ -379,3 +429,4 @@ These change scope or architecture and need decisions before v1.0 is final.
 | Version | Date | Change |
 |---|---|---|
 | v1.0 | 2026-11-27 | Initial draft: requirements, texture catalog, customization spec, output specs, data model |
+| v1.1 | 2026-11-27 | Recorded product decisions D1–D5. Web/PWA: replaced direct set-wallpaper with share sheet and a how-to guide, dropped system-theme matching, relaxed cross-device determinism, added PWA requirements (FR-23–25), rewrote the tech approach. Licensing: added recipe origin tracking and preset-license rules (FR-26–28). Curated look: added the Look Guide and guardrails (§4.1) and cut palettes to 4–6 families. iPhone 16 is the performance reference. Re-prioritized personas, phased the MVP, new open questions. |
