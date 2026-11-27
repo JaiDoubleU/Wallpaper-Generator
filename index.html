@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wallpaper Generator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Make textured phone wallpapers in a quiet, editorial style.">
+</head>
+<body>
+<div class="ground" aria-hidden="true"></div>
+
+<div class="app" id="app">
+  <header class="masthead">
+    <p class="wordmark"><span class="wordmark-name">Wallpaper Generator</span><span class="wordmark-tag">Prototype 0.1</span></p>
+    <button type="button" class="icon-btn" id="theme" aria-label="Appearance: automatic" title="Appearance"></button>
+  </header>
+
+  <section class="stage" aria-label="Preview">
+    <div class="phone-wrap">
+      <div class="phone" id="phone">
+        <canvas id="preview" role="img" aria-label="Wallpaper preview"></canvas>
+        <div class="ui-lock" id="ui-lock" aria-hidden="true">
+          <p class="lock-date" id="lock-date">Friday 27 November</p>
+          <p class="lock-time" id="lock-time">9:41</p>
+          <div class="lock-buttons"><span></span><span></span></div>
+        </div>
+        <div class="ui-home" id="ui-home" aria-hidden="true" hidden>
+          <div class="home-grid" id="home-grid"></div>
+          <div class="home-dock"><span></span><span></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="stage-bar">
+      <div class="seg" role="radiogroup" aria-label="Preview overlay">
+        <label class="seg-opt"><input type="radio" name="overlay" id="ov-lock" value="lock" checked><span>Lock</span></label>
+        <label class="seg-opt"><input type="radio" name="overlay" id="ov-home" value="home"><span>Home</span></label>
+        <label class="seg-opt"><input type="radio" name="overlay" id="ov-none" value="none"><span>Clean</span></label>
+      </div>
+      <div class="history">
+        <button type="button" class="icon-btn" id="undo" aria-label="Undo" title="Undo" disabled></button>
+        <button type="button" class="icon-btn" id="redo" aria-label="Redo" title="Redo" disabled></button>
+      </div>
+    </div>
+    <p class="clock-note" id="clock-note" hidden>The clock area is busy. <button type="button" class="text-btn" id="calm-fix">Calm it</button></p>
+  </section>
+
+  <main class="panel" id="panel">
+    <div class="intro">
+      <h1 class="h1">Quiet surfaces, <em>made yours.</em></h1>
+      <p class="lede">Start from a signature preset, shape the material, then save it at your phone’s exact resolution.</p>
+    </div>
+
+    <section class="group" aria-labelledby="h-presets">
+      <h2 class="overline" id="h-presets">Signature presets</h2>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <section class="group" aria-labelledby="h-material">
+      <h2 class="overline" id="h-material">Material</h2>
+      <div class="seg seg-wide" role="radiogroup" aria-label="Material" id="texture-seg"></div>
+      <div class="controls" id="texture-controls"></div>
+    </section>
+
+    <section class="group" aria-labelledby="h-colour">
+      <h2 class="overline" id="h-colour">Colour</h2>
+      <div class="families" role="radiogroup" aria-label="Palette family" id="families"></div>
+      <div class="seg seg-wide" role="radiogroup" aria-label="Palette version">
+        <label class="seg-opt"><input type="radio" name="variant" id="var-light" value="light"><span>Light version</span></label>
+        <label class="seg-opt"><input type="radio" name="variant" id="var-dark" value="dark"><span>Dark version</span></label>
+      </div>
+      <div class="controls" id="colour-controls"></div>
+    </section>
+
+    <section class="group" aria-labelledby="h-finish">
+      <h2 class="overline" id="h-finish">Finish</h2>
+      <div class="controls" id="finish-controls"></div>
+    </section>
+
+    <section class="group" aria-labelledby="h-layout">
+      <h2 class="overline" id="h-layout">Layout</h2>
+      <div class="controls" id="layout-controls"></div>
+      <p class="hint">Softens the texture behind the lock-screen clock so the time stays easy to read.</p>
+    </section>
+
+    <section class="group" aria-labelledby="h-export">
+      <h2 class="overline" id="h-export">Export</h2>
+      <div class="field">
+        <label for="device">Size</label>
+        <select id="device"></select>
+      </div>
+      <div class="seg seg-wide" role="radiogroup" aria-label="File format">
+        <label class="seg-opt"><input type="radio" name="format" id="fmt-png" value="png" checked><span>PNG · lossless</span></label>
+        <label class="seg-opt"><input type="radio" name="format" id="fmt-jpeg" value="jpeg"><span>JPEG · smaller</span></label>
+      </div>
+      <dl class="meta">
+        <div><dt>Seed</dt><dd id="seed-out">0</dd></div>
+        <div><dt>Pixels</dt><dd id="size-out">1179 × 2556</dd></div>
+        <div><dt>Engine</dt><dd id="engine-out">0.1.0</dd></div>
+      </dl>
+    </section>
+  </main>
+
+  <footer class="actions">
+    <p class="licence" id="licence"><span id="licence-name">Morning Linen</span><span id="licence-terms">Signature preset · personal use</span></p>
+    <div class="action-row">
+      <button type="button" class="btn btn-secondary" id="randomize"><span class="btn-icon" id="shuffle-icon"></span>New seed</button>
+      <button type="button" class="btn btn-primary" id="save"><span class="btn-icon" id="save-icon"></span><span id="save-label">Save wallpaper</span></button>
+    </div>
+  </footer>
+</div>
+
+<div class="scrim" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <h2 class="h2" id="sheet-title">Saved</h2>
+    <div class="sheet-body" id="sheet-body"></div>
+    <div class="sheet-actions" id="sheet-actions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="unsupported" id="unsupported" hidden>
+  <h1 class="h1">This browser can’t draw the textures.</h1>
+  <p class="lede">The generator needs WebGL 2, which current versions of Safari, Chrome, Firefox and Edge support. Update your browser or open the page on another device.</p>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
