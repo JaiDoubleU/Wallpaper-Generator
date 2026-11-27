@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | Document | Wallpaper Generator Requirements |
-| Version | v1.1 |
-| Status | **Working draft**: core product decisions made (§1.3); remaining open questions in §12 |
+| Version | v1.2 |
+| Status | **Working draft**: core product decisions made (§1.3); visual direction set in [`LOOK_GUIDE.md`](LOOK_GUIDE.md); remaining open questions in §12 |
 | Last updated | 2026-11-27 |
 | Purpose | Single source of truth for what the generator must do and which look-and-feel controls it exposes |
 
@@ -38,7 +38,7 @@ Every wallpaper is defined by a **recipe**: texture type, parameters, palette an
 | D1 | **Platform: web / PWA first** | Runs in mobile Safari and Chrome, installable to the home screen, works offline. No direct "set as wallpaper" (browsers can't do this); users save the image, then set it in Photos or Gallery. |
 | D2 | **Business model: a tool for people to make their own wallpapers** | The core value is the creation experience and output quality. Creator-scale features (batch export) stay optional. How it earns money is still open (§12). |
 | D3 | **Licensing: users own their exports; built-in presets are for personal use only** | Needs clear terms, and a way to tell when an export is "preset-derived" (§3.5). |
-| D4 | **Aesthetic: one curated signature look, not a broad toolkit** | Fewer, better textures. Palettes, presets and Randomize are kept within the signature look (§4.1). |
+| D4 | **Aesthetic: one curated signature look, "Modern Editorial"** (defined in [`LOOK_GUIDE.md`](LOOK_GUIDE.md)) | Fewer, better textures. Palettes, presets and Randomize are kept within the signature look (§4.1). The app interface follows Look Guide Part A; wallpaper output follows Part B. |
 | D5 | **Reference device: iPhone 16** (1179 × 2556, Safari) | All performance targets are measured on it (§8). |
 
 ---
@@ -116,19 +116,19 @@ Priority: **M** = must (MVP), **S** = should, **C** = could.
 
 ## 4. Texture Catalog
 
-Each texture type is a generator with its own parameters (§5.3) on top of the shared controls. The MVP ships the first six, but D4 (curated look) means the final MVP list should be **cut to the 3–6 textures that best express the signature look** once it is defined (§4.1).
+Each texture type is a generator with its own parameters (§5.3) on top of the shared controls. **MVP textures (v1.2, from Look Guide B1): T12 Fabric Weave, T4 Paper, T5 Terrazzo, T3 Marble and T6 Topographic.** Grain (T1) becomes a finish applied to every texture, and Gradient Mesh (T2) is cut.
 
 ### 4.1 Curated Look Guardrails (D4)
 
-- **Signature definition:** a one-page *Look Guide* with 3–5 adjectives, 4–6 palette families, a grain and finish character, and reference images. It is the test every texture and preset must pass. *(To be written; §12 question 1.)*
+- **Signature definition:** [`LOOK_GUIDE.md`](LOOK_GUIDE.md), "Modern Editorial": quiet sophistication, natural materials. Its quality bar (B5) is the test every texture and preset must pass.
 - **Bounded Randomize:** Randomize picks only from the curated palettes and from "on-brand" parameter ranges that are narrower than the full ranges in §5. The full ranges stay available in Advanced mode.
 - **Presets as the front door:** the app opens on a gallery of signature presets, not a blank editor.
 - **Quality bar:** a texture ships only if three random seeds out of three look good enough to post. If not, it's cut or narrowed.
 
 | # | Texture | Technique | Look | MVP |
 |---|---|---|---|---|
-| T1 | **Grain / Film** | Per-pixel noise, Gaussian or uniform | Analog, matte, risograph | ✅ |
-| T2 | **Gradient Mesh** | Multi-point smooth color interpolation + grain | Soft modern "aura" gradients | ✅ |
+| T1 | **Grain / Film** | Per-pixel noise, Gaussian or uniform | Analog, matte, risograph | ↪ finish (`fx.grain`) |
+| T2 | **Gradient Mesh** | Multi-point smooth color interpolation + grain | Soft modern "aura" gradients | ❌ cut (Look Guide B1) |
 | T3 | **Fluid / Marble** | Domain-warped fractal noise (fBm) | Marble, ink, smoke, oil | ✅ |
 | T4 | **Paper / Canvas** | Layered fine noise + fiber streaks + emboss | Watercolor paper, linen, kraft | ✅ |
 | T5 | **Terrazzo / Speckle** | Poisson-disk scatter of irregular polygons | Stone chips, confetti | ✅ |
@@ -138,7 +138,7 @@ Each texture type is a generator with its own parameters (§5.3) on top of the s
 | T9 | Brushed Metal | Directional motion-blurred noise + specular | Aluminium, steel | |
 | T10 | Halftone | Dot or line screen over a field | Print, pop-art | |
 | T11 | Geometric Tiles | Truchet / hex / triangle grids with jitter | Tiles, mosaic | |
-| T12 | Fabric Weave | Interleaved thread pattern + noise | Denim, tweed, linen | |
+| T12 | **Fabric Weave** | Interleaved thread pattern + noise | Linen, denim, tweed | ✅ promoted (signature material) |
 | T13 | Stucco / Plaster | Ridged noise + normal-mapped lighting | Wall plaster, concrete | |
 | T14 | Bokeh / Light | Blurred additive circles | Dreamy, nightlife | |
 
@@ -153,7 +153,7 @@ These are the controls that shape look and feel. Ranges are normalized where pos
 | Parameter | Type | Range / Options | Default | Notes |
 |---|---|---|---|---|
 | `palette.mode` | enum | `monochrome`, `analogous`, `complementary`, `split-complementary`, `triadic`, `custom`, `image-extract` | `analogous` | Harmony rule used to derive colors from a base hue |
-| `palette.baseColor` | color | any (hex / HSL / OKLCH) | `#6B5B95` | Seed color for harmony modes |
+| `palette.baseColor` | color | any (hex / HSL / OKLCH) | `#857C6D` (taupe) | Seed color for harmony modes |
 | `palette.colors` | color[] | 1–6 stops | derived | Editable in `custom` mode |
 | `palette.stopPositions` | float[] | 0–1 | evenly spaced | Gradient-map positions |
 | `palette.colorSpace` | enum | `oklch`, `srgb`, `lab` | `oklch` | OKLCH interpolation avoids muddy midpoints |
@@ -163,7 +163,7 @@ These are the controls that shape look and feel. Ranges are normalized where pos
 | `palette.extractFromImage` | image | user photo | — | Pulls 3–6 dominant colors (k-means); the photo is not stored |
 | ~~`palette.matchSystemTheme`~~ | — | — | — | Dropped: browsers can't read the system accent color (D1) |
 
-**Built-in palette families:** to be reduced to **4–6 curated families** defined in the Look Guide (§4.1). Candidate list: Earthy, Pastel, Jewel, Neon, Monochrome Ink, Desert, Ocean, Forest, Sunset, Paper & Ink, Midnight, Seasonal (4).
+**Built-in palette families (v1.2):** Natural Linen, Warm Stone, Charcoal, Indigo Dye and Ink on Paper. Each has its own light and dark version; hex values are in Look Guide B2. ~~Earthy, Pastel, Jewel, Neon, Desert, Ocean, Forest, Sunset, Seasonal~~ are dropped as off-brand.
 
 ### 5.2 Global Texture Controls (all types)
 
@@ -202,7 +202,7 @@ These are the controls that shape look and feel. Ranges are normalized where pos
 | `relief.depth` | float | 0–1 | 0.3 | Emboss strength |
 | `light.angle` | degrees | 0–360 | 135 | Light direction (135° = top-left) |
 | `light.elevation` | degrees | 5–90 | 45 | Low elevation shows more texture |
-| `light.color` | color | — | `#FFFFFF` | Tints the highlights |
+| `light.color` | color | — | `#F2EEE3` (ivory) | Tints the highlights |
 | `surface.finish` | enum | `matte`, `satin`, `glossy`, `metallic` | `matte` | Specular response |
 | `ambientOcclusion` | float | 0–1 | 0 | Darkens crevices |
 
@@ -219,6 +219,8 @@ These are the controls that shape look and feel. Ranges are normalized where pos
 | `fx.dither` | enum | `none`, `ordered`, `blue-noise` | `blue-noise` |
 | `fx.duotone` | bool + 2 colors | — | off |
 | `fx.invert` | bool | — | false |
+
+> **Curated look (Look Guide B3):** chromatic aberration, posterize, invert and kaleidoscope symmetry are part of the engine but **hidden from the interface in v1**. Simple mode and Randomize use the narrower on-brand ranges in B3.
 
 ### 5.6 Composition and Layout
 
@@ -237,7 +239,8 @@ These are the controls that shape look and feel. Ranges are normalized where pos
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
 | `appearance.pair` | bool | false | Generates linked light and dark variants from one recipe |
-| `appearance.darkShift` | float | 0.6 | How far the lightness drops for the dark variant |
+| `appearance.darkPalette` | color[] | from the family's dark version | **Preferred (v1.2).** The dark variant uses its own chosen palette, not an inversion (Look Guide B2) |
+| `appearance.darkShift` | float | 0.6 | Fallback only, for custom palettes that have no dark version |
 | `appearance.oledBlack` | bool | false | Clamps the darkest values to true black (#000) for OLED battery savings |
 
 iOS supports light/dark wallpaper pairs and Android can switch wallpapers by theme, so a paired export is a real differentiator.
@@ -340,24 +343,25 @@ Default to the **detected device's native pixel resolution** (FR-16). **The refe
 ```json
 {
   "engineVersion": "1.0.0",
-  "name": "Dusk Marble",
-  "origin": { "source": "preset", "presetId": "dusk-marble", "modified": true },
+  "name": "Quiet Marble",
+  "origin": { "source": "preset", "presetId": "quiet-marble", "modified": true },
   "seed": 2837461,
   "texture": {
     "type": "fluid-marble",
-    "params": { "warpIterations": 2, "veinSharpness": 0.7, "flowAngle": 30 }
+    "params": { "warpIterations": 2, "veinSharpness": 0.6, "flowAngle": 30 }
   },
   "global": {
-    "scale": 0.3, "rotation": 0, "contrast": 1.1, "brightness": 0,
+    "scale": 0.3, "rotation": 0, "contrast": 0.9, "brightness": 0,
     "detail": 6, "roughness": 0.5, "lacunarity": 2.0,
-    "warpStrength": 1.2, "warpScale": 0.4, "anisotropy": 0, "tileable": false
+    "warpStrength": 0.6, "warpScale": 0.4, "anisotropy": 0, "tileable": false
   },
   "palette": {
     "mode": "custom",
+    "family": "natural-linen",
     "colorSpace": "oklch",
-    "colors": ["#1B1A33", "#4B3F72", "#C97B84", "#F2D0A9"],
-    "stopPositions": [0, 0.35, 0.7, 1],
-    "temperature": 0.1, "saturation": 1.0
+    "colors": ["#F2EEE3", "#E8E4DA", "#D6D0C2", "#857C6D"],
+    "stopPositions": [0, 0.4, 0.75, 1],
+    "temperature": 0.05, "saturation": 0.6
   },
   "lighting": { "relief": { "enabled": true, "depth": 0.25 }, "angle": 135, "elevation": 40, "finish": "satin" },
   "fx": { "grain": 0.1, "vignette": { "amount": 0.2, "softness": 0.6 }, "dither": "blue-noise" },
@@ -391,7 +395,7 @@ Platform decided: **web / PWA** (D1). Everything else below is a recommendation,
 
 ## 11. MVP Scope (90-day horizon)
 
-**In:** Look Guide (§4.1); **3–6 curated textures** chosen from T1–T6; curated palette families; §5.2 global controls; §5.3 params for the chosen textures; §5.5 grain/vignette/dither; calm clock zone; phone-mockup preview; 12 signature presets; save/load presets plus JSON backup; PNG/JPEG export at native resolution through the share sheet; "how to set your wallpaper" guide; installable offline PWA; preset licensing marks and terms page (FR-26 to FR-28).
+**In:** app interface built to Look Guide Part A; **5 textures (T12, T4, T5, T3, T6)** with grain as a finish; 5 palette families; §5.2 global controls; §5.3 params for the chosen textures; §5.5 grain/vignette/dither; calm clock zone; phone-mockup preview; 12 signature presets; save/load presets plus JSON backup; PNG/JPEG export at native resolution through the share sheet; "how to set your wallpaper" guide; installable offline PWA; preset licensing marks and terms page (FR-26 to FR-28).
 
 **Out (later):** layering, lighting/relief, light/dark pairs, palette from photo, share codes, batch export, T7–T14, animated wallpapers, native app wrapper.
 
@@ -399,7 +403,7 @@ Platform decided: **web / PWA** (D1). Everything else below is a recommendation,
 
 | Weeks | Milestone |
 |---|---|
-| 1–2 | Look Guide written; WebGL prototype of 2 textures with live sliders on the iPhone 16 |
+| 1–2 | Look Guide approved ✅ (v1.0 drafted); WebGL prototype of Fabric Weave + Marble with live sliders, in the Look Guide interface, on the iPhone 16 |
 | 3–6 | Remaining MVP textures, palette system, recipe model, presets, export |
 | 7–9 | PWA install and offline, licensing flow, readability check, 12 signature presets |
 | 10–12 | Polish, test with 5–10 real users, launch |
@@ -417,7 +421,7 @@ Platform decided: **web / PWA** (D1). Everything else below is a recommendation,
 
 **Still open:**
 
-1. **What is the signature look?** 3–5 adjectives, palette families and reference images for the Look Guide (§4.1). This blocks choosing the textures and presets. *Most important.*
+1. ~~What is the signature look?~~ **Resolved in v1.2:** Modern Editorial ([`LOOK_GUIDE.md`](LOOK_GUIDE.md)). Part B of the Look Guide (textures, palettes, presets) still needs owner approval.
 2. **How does the tool earn money (or does it)?** Options: free (a portfolio and brand piece that drives traffic to your art), a one-time unlock of premium textures, or pay-what-you-want. Recommendation: **free core plus a paid "signature collection" unlock**, decided before week 7 so licensing and the paywall can be built together.
 3. **Confirm the "modified" threshold** for preset licensing (§3.5): does a seed-only change keep an export personal-use-only? Recommendation: yes.
 4. **Is "users own their exports" on top of a preset someone else designed acceptable to you as the presets' creator?** The modified rule protects the presets themselves, but heavily edited versions of your signature look become user-owned. Confirm you're comfortable with that.
@@ -430,3 +434,4 @@ Platform decided: **web / PWA** (D1). Everything else below is a recommendation,
 |---|---|---|
 | v1.0 | 2026-11-27 | Initial draft: requirements, texture catalog, customization spec, output specs, data model |
 | v1.1 | 2026-11-27 | Recorded product decisions D1–D5. Web/PWA: replaced direct set-wallpaper with share sheet and a how-to guide, dropped system-theme matching, relaxed cross-device determinism, added PWA requirements (FR-23–25), rewrote the tech approach. Licensing: added recipe origin tracking and preset-license rules (FR-26–28). Curated look: added the Look Guide and guardrails (§4.1) and cut palettes to 4–6 families. iPhone 16 is the performance reference. Re-prioritized personas, phased the MVP, new open questions. |
+| v1.2 | 2026-11-27 | Visual direction set: linked the new `LOOK_GUIDE.md` ("Modern Editorial"). MVP textures fixed at T12, T4, T5, T3, T6 (Fabric Weave promoted, Gradient Mesh cut, Grain becomes a finish). Palette families narrowed to the 5 in Look Guide B2. Defaults made on-brand. Off-brand effects hidden. Dark variants use their own chosen palettes instead of `darkShift`. Example recipe updated. Open question 1 resolved. |
